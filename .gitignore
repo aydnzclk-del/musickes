@@ -1,0 +1,22 @@
+# Python runtime / downloaded media / settings are machine-specific and must stay private.
+__pycache__/
+*.py[cod]
+settings.json
+.env
+.env.*
+!.env.example
+cache/
+Gecici/
+Çıktılar/
+*.wav
+*.mp3
+*.mp4
+*.zip
+.venv/
+venv/
+winpython-runtime/
+runtime/
+ffmpeg/
+ffmpeg-bin/
+bin/
+
