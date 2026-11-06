@@ -1,0 +1,8 @@
+yt-dlp
+librosa
+numpy
+soundfile
+transformers
+torch
+
+
