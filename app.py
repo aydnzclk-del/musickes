@@ -185,7 +185,7 @@ class App(tk.Tk):
             from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
             bundle=getattr(self,'_audio_classifier',None)
             if bundle is None:
-                model_id='MIT/ast-finetuned-audioset-10-10-0.4593';extractor=AutoFeatureExtractor.from_pretrained(model_id);model=AutoModelForAudioClassification.from_pretrained(model_id).eval();torch.set_num_threads(max(1,min(8,os.cpu_count() or 4)));bundle=(torch,extractor,model);self._audio_classifier=bundle
+                model_id='MIT/ast-finetuned-audioset-10-10-0.4593';extractor=AutoFeatureExtractor.from_pretrained(model_id);model=AutoModelForAudioClassification.from_pretrained(model_id).eval();torch.set_num_threads(max(1,min(16,os.cpu_count() or 4)));bundle=(torch,extractor,model);self._audio_classifier=bundle
             torch,extractor,model=bundle;fd,tmp_name=tempfile.mkstemp(suffix='.wav',dir=str(Path(path).parent));os.close(fd)
             conv=run(['ffmpeg','-y','-i',str(path),'-vn','-ac','1','-ar','16000','-c:a','pcm_s16le',tmp_name])
             if conv.returncode:raise RuntimeError('FFmpeg ses analizi için dönüştüremedi: '+conv.stderr[-400:])
@@ -263,5 +263,6 @@ class App(tk.Tk):
         self.after(150,self._poll)
 
 if __name__=='__main__':App().mainloop()
+
 
 
