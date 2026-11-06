@@ -7,7 +7,8 @@ MuzikKes consists of a Vercel web interface, a Windows VDS worker, and a GitHub 
 - `index.html` is the Vercel web interface. The manual queue can submit jobs through `/api/worker` when the VDS worker endpoint is online.
 - `api/worker/[...path].js` is the server-side Vercel proxy. It reads the worker URL and secret from Vercel Production environment variables.
 - `worker_api.py` stores jobs and logs in SQLite on the VDS, then uses the desktop audio worker for processing.
-- YouTube and Facebook search APIs are not connected yet. Their account keys will be added to server-side secrets after you obtain them.
+- YouTube Data API v3 search is connected through `api/youtube/search.js`; `YOUTUBE_API_KEY` is stored as a sensitive Vercel Production variable and never sent to the browser or committed to GitHub.
+- Facebook general public-video search is not available through a normal developer key. Facebook links can still be queued manually; broader public-content search requires Meta's research access.
 - WAV downloads use short-lived signed URLs to avoid routing large audio files through Vercel's response-size limits.
 
 ## VDS storage
@@ -34,4 +35,3 @@ The current VDS connection uses a Cloudflare Quick Tunnel for the first online h
 ## Migration
 
 `Uygulama` contains the worker source and FFmpeg executables. To move to another Windows host, install Python and the requirements, copy the `Uygulama` folder, and set a new worker secret. Copy `Gecici`, `Çıktılar`, and `data` only if you need the old cache, WAVs, and queue history. Keep `worker.env`, Vercel secrets, settings, downloaded media, and WAV files out of Git.
-
