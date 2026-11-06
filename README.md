@@ -1,39 +1,37 @@
 # MuzikKes
 
-MuzikKes has two parts: a static Vercel web interface and a Windows/Python processing worker. The web interface can collect and show search/manual queue details. FFmpeg downloads, AudioSet analysis, and WAV export run on the Windows VDS; Vercel does not process long audio jobs.
+MuzikKes consists of a Vercel web interface, a Windows VDS worker, and a GitHub source backup. The Vercel Function forwards short authenticated control requests; FFmpeg downloading, AudioSet analysis, and WAV export run on the VDS CPU/RAM.
 
-## Current state
+## Current status
 
-- The desktop worker is the working processing program. It uses FFmpeg/ffprobe, yt-dlp and a local AudioSet AST model.
-- The Vercel site is a UI shell. YouTube/Facebook API search and remote worker control are not connected yet.
-- API credentials must be stored on the worker/server as protected environment settings; never commit them to GitHub or put them in browser JavaScript.
-- A later backend link will require an authenticated HTTPS endpoint from Vercel to the VDS and job status/output routes.
+- `index.html` is the Vercel web interface. The manual queue can submit jobs through `/api/worker` when the VDS worker endpoint is online.
+- `api/worker/[...path].js` is the server-side Vercel proxy. It reads the worker URL and secret from Vercel Production environment variables.
+- `worker_api.py` stores jobs and logs in SQLite on the VDS, then uses the desktop audio worker for processing.
+- YouTube and Facebook search APIs are not connected yet. Their account keys will be added to server-side secrets after you obtain them.
+- WAV downloads use short-lived signed URLs to avoid routing large audio files through Vercel's response-size limits.
 
-## Desktop use
+## VDS storage
 
-Open `app.py`, paste authorized YouTube/Facebook links in **Manuel bağlantılar**, choose the duration and WAV settings, and run the queue. Default minimum is 1.5 minutes, maximum 10 minutes. Analysis is a prediction, so listen to saved cuts.
+The current 240 GB virtual disk now has an NTFS `E:` volume with about 200 GiB allocated from the previously unallocated space. The existing C: and recovery partitions were left in place.
 
-## Disk layout
+- `E:\\MuzikKes\\Uygulama` — Python source, dependencies list, FFmpeg, worker service, and Cloudflare connector.
+- `E:\\MuzikKes\\Gecici` — source audio and temporary analysis files.
+- `E:\\MuzikKes\\Çıktılar` — date batches and exported WAV clips.
+- `E:\\MuzikKes\\data\\jobs.sqlite3` — local persistent job state and log records.
 
-On the current VDS, the unallocated space on the 240 GB virtual disk was formatted as an NTFS `E:` volume labelled `MuzikKes`. The project directories are:
+Batch folders use `GG-AA-YYYY A`, `GG-AA-YYYY B`, etc., with at most 12 WAV clips per batch. Multiple clips from one source are grouped into a source-title folder. Names follow `Y-SING-keyword.wav` / `F-ENS-keyword.wav`, with `-B`, `-C`, etc. for later clips from the same URL.
 
-- `E:\\MuzikKes\\Uygulama` — portable source and requirements for migration.
-- `E:\\MuzikKes\\Gecici` — downloaded audio and temporary analysis files.
-- `E:\\MuzikKes\\Çıktılar` — dated output batches and WAV clips.
+## Run the VDS worker
 
-Each dated batch holds up to 12 clips; extra clips from the same source are grouped under a source-title folder. Names follow `Y-SING-keyword.wav` / `F-ENS-keyword.wav`; additional clips from one source use `-B`, `-C`, and so on. The app falls back to Desktop storage if `E:` does not exist on a future host.
+Install Python 3.13+, FFmpeg/ffprobe, and packages from `requirements.txt`. Set `MUZIKKES_WORKER_TOKEN` in the local `worker.env` file, then run `python worker_api.py`. The service binds only to `127.0.0.1:8787`; do not expose that port directly.
 
-## Requirements and migration
+The Vercel project stores `MUZIKKES_WORKER_TOKEN` as a Secret and `MUZIKKES_WORKER_URL` as a server-side setting. The front-end never receives the token. For remote access, use an HTTPS tunnel or a domain with TLS.
 
-Install Python 3.10+, FFmpeg/ffprobe, then `pip install -r requirements.txt`. The first analysis downloads the AST model. For a new host, copy `Uygulama`, install the requirements and FFmpeg, then point `output_dir` to that host's data drive. Keep `Gecici` and `Çıktılar` out of Git.
+## Tunnel status and limits
 
-## Search API setup (later)
+The current VDS connection uses a Cloudflare Quick Tunnel for the first online handoff. Its `trycloudflare.com` hostname is temporary, has no uptime guarantee, and changes when the tunnel process is restarted. For a stable service, create a named Cloudflare Tunnel and point a domain you control to it, then update `MUZIKKES_WORKER_URL` in Vercel. A stopped tunnel makes remote processing unavailable while leaving the Vercel page and GitHub backup intact.
 
-- YouTube Data API v3 can provide video search and metadata. The channel verified badge is not directly exposed as a standard Data API field.
-- Facebook discovery is limited by Meta API product permissions and app review; it does not expose a general public video search to every app.
-- Add provider keys only after obtaining them from the account owner. Keep them in local settings or server-side secrets, not source files.
+## Migration
 
-## Vercel deployment
-
-Vercel serves the static `index.html`. The page currently saves the manual queue in that browser only and shows that search/processing are not connected. The VDS worker API, authentication, secure HTTPS route, and persistent cross-device queue remain to be implemented before remote processing can be enabled.
+`Uygulama` contains the worker source and FFmpeg executables. To move to another Windows host, install Python and the requirements, copy the `Uygulama` folder, and set a new worker secret. Copy `Gecici`, `Çıktılar`, and `data` only if you need the old cache, WAVs, and queue history. Keep `worker.env`, Vercel secrets, settings, downloaded media, and WAV files out of Git.
 
